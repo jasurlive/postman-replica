@@ -1,101 +1,31 @@
-import { useState } from "react";
 import "./App.css";
-
-type Header = { key: string; value: string };
-
-const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
-type Method = (typeof METHODS)[number];
-type AuthType = "none" | "bearer" | "apikey";
-
-type ResponseData = {
-  status: number;
-  statusText: string;
-  timeMs: number;
-  headers: [string, string][];
-  body: string;
-};
+import useAPI, { type Method, type AuthType } from "./useAPI";
 
 export default function App() {
-  const [method, setMethod] = useState<Method>("GET");
-  const [url, setUrl] = useState("https://jsonplaceholder.typicode.com/users");
-  const [headers, setHeaders] = useState<Header[]>([{ key: "", value: "" }]);
-  const [body, setBody] = useState("");
-  const [authType, setAuthType] = useState<AuthType>("none");
-  const [token, setToken] = useState("");
-  const [apiKeyName, setApiKeyName] = useState("x-api-key");
-  const [response, setResponse] = useState<ResponseData | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const hasBody = method === "POST" || method === "PUT" || method === "PATCH";
-
-  function updateHeader(i: number, field: keyof Header, value: string) {
-    const next = [...headers];
-    next[i][field] = value;
-    setHeaders(next);
-  }
-
-  function addHeader() {
-    setHeaders([...headers, { key: "", value: "" }]);
-  }
-
-  function removeHeader(i: number) {
-    setHeaders(headers.filter((_, index) => index !== i));
-  }
-
-  async function sendRequest() {
-    setLoading(true);
-    setError("");
-    setResponse(null);
-
-    const reqHeaders: Record<string, string> = {};
-
-    for (const header of headers) {
-      if (header.key.trim()) reqHeaders[header.key.trim()] = header.value;
-    }
-
-    if (authType === "bearer" && token) {
-      reqHeaders.Authorization = `Bearer ${token}`;
-    }
-
-    if (authType === "apikey" && token) {
-      reqHeaders[apiKeyName || "x-api-key"] = token;
-    }
-
-    if (hasBody && body && !reqHeaders["Content-Type"]) {
-      reqHeaders["Content-Type"] = "application/json";
-    }
-
-    const start = performance.now();
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: reqHeaders,
-        body: hasBody && body ? body : undefined,
-      });
-
-      const text = await res.text();
-
-      let pretty = text;
-
-      try {
-        pretty = JSON.stringify(JSON.parse(text), null, 2);
-      } catch {}
-
-      setResponse({
-        status: res.status,
-        statusText: res.statusText,
-        timeMs: Math.round(performance.now() - start),
-        headers: [...res.headers.entries()],
-        body: pretty,
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    METHODS,
+    method,
+    setMethod,
+    url,
+    setUrl,
+    headers,
+    body,
+    setBody,
+    authType,
+    setAuthType,
+    token,
+    setToken,
+    apiKeyName,
+    setApiKeyName,
+    response,
+    error,
+    loading,
+    hasBody,
+    updateHeader,
+    addHeader,
+    removeHeader,
+    sendRequest,
+  } = useAPI();
 
   return (
     <main className="api-app">
@@ -152,9 +82,7 @@ export default function App() {
 
               <select
                 value={authType}
-                onChange={(e) =>
-                  setAuthType(e.target.value as AuthType)
-                }
+                onChange={(e) => setAuthType(e.target.value as AuthType)}
               >
                 <option value="none">None</option>
                 <option value="bearer">Bearer token</option>
@@ -175,9 +103,7 @@ export default function App() {
                 <input
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
-                  placeholder={
-                    authType === "bearer" ? "Token" : "Key value"
-                  }
+                  placeholder={authType === "bearer" ? "Token" : "Key value"}
                   type="password"
                 />
               </div>
@@ -198,17 +124,13 @@ export default function App() {
                 <div className="header-row" key={i}>
                   <input
                     value={header.key}
-                    onChange={(e) =>
-                      updateHeader(i, "key", e.target.value)
-                    }
+                    onChange={(e) => updateHeader(i, "key", e.target.value)}
                     placeholder="Key"
                   />
 
                   <input
                     value={header.value}
-                    onChange={(e) =>
-                      updateHeader(i, "value", e.target.value)
-                    }
+                    onChange={(e) => updateHeader(i, "value", e.target.value)}
                     placeholder="Value"
                   />
 
@@ -255,9 +177,7 @@ export default function App() {
                   <span>{response.statusText || "Response"}</span>
                 </div>
 
-                <div className="response-time">
-                  {response.timeMs} ms
-                </div>
+                <div className="response-time">{response.timeMs} ms</div>
               </div>
 
               <details className="response-headers">
